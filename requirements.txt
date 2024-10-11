@@ -1,5 +1,10 @@
-Flask
 face-recognition
-gunicorn
-streamlit
 opencv-python
+Flask
+streamlit
+streamlit-webrtc
+aiohttp
+aiortc
+fastapi
+python-multipart 
+websockets

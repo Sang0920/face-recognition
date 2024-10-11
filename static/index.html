@@ -1,0 +1,325 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Face Recognition</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .video-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        video, #processedFrame {
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+        #faceList {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-width: 200px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Real-time Face Recognition</h1>
+        <div id="status" class="status disconnected">Disconnected</div>
+        <div class="video-container">
+            <div>
+                <h3>Camera Feed</h3>
+                <video id="video" width="640" height="480" autoplay></video>
+            </div>
+            <div>
+                <h3>Processed Feed</h3>
+                <img id="processedFrame" width="640" height="480" />
+            </div>
+        </div>
+        <div>
+            <h3>Detected Faces</h3>
+            <div id="faceList"></div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        const video = document.getElementById('video');
+        const processedFrame = document.getElementById('processedFrame');
+        const faceList = document.getElementById('faceList');
+        const statusDiv = document.getElementById('status');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size to match video
+        canvas.width = 640;
+        canvas.height = 480;
+
+        function connectWebSocket() {
+            ws = new WebSocket(`ws://${window.location.host}/ws`);
+            
+            ws.onopen = () => {
+                statusDiv.textContent = 'Connected';
+                statusDiv.className = 'status connected';
+                startVideoStream();
+            };
+            
+            ws.onclose = () => {
+                statusDiv.textContent = 'Disconnected - Reconnecting...';
+                statusDiv.className = 'status disconnected';
+                setTimeout(connectWebSocket, 1000);
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                processedFrame.src = data.processed_frame;
+                
+                // Update face list
+                faceList.innerHTML = '<h4>Detected People:</h4>' + 
+                    data.face_names.map(name => `<div>${name}</div>`).join('');
+            };
+        }
+
+        async function startVideoStream() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+                video.srcObject = stream;
+                
+                // Start sending frames to server
+                sendFrames();
+            } catch (err) {
+                console.error('Error accessing webcam:', err);
+                alert('Error accessing webcam. Please make sure you have a webcam connected and have granted permission to use it.');
+            }
+        }
+
+        function sendFrames() {
+            if (ws.readyState === WebSocket.OPEN) {
+                // Draw current video frame to canvas
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convert canvas to base64 and send to server
+                const frameData = canvas.toDataURL('image/jpeg', 0.8);
+                ws.send(frameData);
+            }
+            
+            // Schedule next frame
+            requestAnimationFrame(sendFrames);
+        }
+
+        // Start connection when page loads
+        connectWebSocket();
+    </script>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Face Recognition</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .video-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        video, #processedFrame {
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+        #faceList {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-width: 200px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        #timer {
+            font-size: 1.2em;
+            margin: 10px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Face Recognition (5-second intervals)</h1>
+        <div id="status" class="status disconnected">Disconnected</div>
+        <div id="timer">Next update in: 5s</div>
+        <div class="video-container">
+            <div>
+                <h3>Camera Feed</h3>
+                <video id="video" width="640" height="480" autoplay></video>
+            </div>
+            <div>
+                <h3>Processed Feed</h3>
+                <img id="processedFrame" width="640" height="480" />
+            </div>
+        </div>
+        <div>
+            <h3>Detected Faces</h3>
+            <div id="faceList"></div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        const video = document.getElementById('video');
+        const processedFrame = document.getElementById('processedFrame');
+        const faceList = document.getElementById('faceList');
+        const statusDiv = document.getElementById('status');
+        const timerDiv = document.getElementById('timer');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        let timeoutId;
+        
+        // Set canvas size to match video
+        canvas.width = 640;
+        canvas.height = 480;
+
+        function connectWebSocket() {
+            ws = new WebSocket(`ws://${window.location.host}/ws`);
+            
+            ws.onopen = () => {
+                statusDiv.textContent = 'Connected';
+                statusDiv.className = 'status connected';
+                startVideoStream();
+            };
+            
+            ws.onclose = () => {
+                statusDiv.textContent = 'Disconnected - Reconnecting...';
+                statusDiv.className = 'status disconnected';
+                clearTimeout(timeoutId);
+                setTimeout(connectWebSocket, 1000);
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                processedFrame.src = data.processed_frame;
+                
+                // Update face list
+                faceList.innerHTML = '<h4>Detected People:</h4>' + 
+                    data.face_names.map(name => `<div>${name}</div>`).join('');
+                
+                // Schedule next frame capture
+                startTimer();
+                timeoutId = setTimeout(sendFrame, 5000);
+            };
+        }
+
+        function startTimer() {
+            let seconds = 5;
+            const updateTimer = () => {
+                timerDiv.textContent = `Next update in: ${seconds}s`;
+                seconds--;
+                if (seconds >= 0) {
+                    setTimeout(updateTimer, 1000);
+                }
+            };
+            updateTimer();
+        }
+
+        async function startVideoStream() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+                video.srcObject = stream;
+                
+                // Start sending frames to server
+                video.onloadedmetadata = () => {
+                    sendFrame();
+                };
+            } catch (err) {
+                console.error('Error accessing webcam:', err);
+                alert('Error accessing webcam. Please make sure you have a webcam connected and have granted permission to use it.');
+            }
+        }
+
+        function sendFrame() {
+            if (ws.readyState === WebSocket.OPEN) {
+                // Draw current video frame to canvas
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convert canvas to base64 and send to server
+                const frameData = canvas.toDataURL('image/jpeg', 0.8);
+                ws.send(frameData);
+            }
+        }
+
+        // Start connection when page loads
+        connectWebSocket();
+    </script>
+</body>
+</html> 
+
+
