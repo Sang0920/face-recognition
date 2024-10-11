@@ -7,18 +7,18 @@
    ```
 
 2. Create vitural enviroment (optional)
-`sudo apt-get install python3-venv`
-`python3 -m venv myenv`
-`source myenv/bin/activate`
+    `sudo apt-get install python3-venv`
+    `python3 -m venv myenv`
+    `source myenv/bin/activate`
 
 3. Install Requirements
-`pip install -r requirements.txt`
+    `pip install -r requirements.txt`
 
 4. Run Demo
-`uvicorn main:app --reload`
+    `uvicorn main:app --reload`
 
 5. Run API
-`uvicorn face_api:app --reload`
+    `uvicorn face_api:app --reload`
 
 6. Run Test
-`python test_API.py`
+    `python test_API.py`
