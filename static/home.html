@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition</title>
+    <style>
+        #video {
+            width: 100%;
+            max-width: 600px;
+        }
+        #capture {
+            margin-top: 10px;
+        }
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Face Recognition</h1>
+    <video id="video" autoplay></video>
+    <button id="capture">Capture</button>
+    <div id="results"></div>
+
+    <script>
+        const video = document.getElementById('video');
+        const captureButton = document.getElementById('capture');
+        const resultsDiv = document.getElementById('results');
+
+        // Get access to the webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Error accessing webcam: ", err);
+            });
+
+        // Capture the frame and send it to the server
+        captureButton.addEventListener('click', () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg');
+
+            fetch('/capture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: dataUrl })
+            })
+            .then(response => response.json())
+            .then(data => {
+                resultsDiv.innerHTML = '';
+                if (data.success) {
+                    data.faces.forEach(face => {
+                        const faceDiv = document.createElement('div');
+                        faceDiv.innerHTML = `Name: ${face.name}, Email: ${face.email}`;
+                        resultsDiv.appendChild(faceDiv);
+                    });
+                } else {
+                    resultsDiv.innerHTML = 'No faces recognized.';
+                }
+            })
+            .catch(err => {
+                console.error("Error capturing frame: ", err);
+            });
+        });
+    </script>
+</body>
+</html>

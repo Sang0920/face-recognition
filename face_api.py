@@ -11,7 +11,7 @@ import base64
 import os
 import json
 from datetime import datetime
-
+from test_draco import checkin_realtime
 app = FastAPI()
 
 app.add_middleware(
@@ -54,7 +54,7 @@ def process_image_data(image_data: np.ndarray) -> dict:
         
         # Process each detected face
         for face_encoding, (top, right, bottom, left) in zip(face_encodings, face_locations):
-            matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.5)
+            matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.45)
             name = "Unknown"
             email = "Unknown"
             
@@ -117,6 +117,34 @@ def decode_base64_image(base64_string: str) -> np.ndarray:
 @app.on_event("startup")
 async def startup_event():
     app.state.known_face_encodings, app.state.known_face_names, app.state.known_emails = load_embeddings()
+
+@app.post("/capture")
+async def capture_image(base64_data: Base64Image):
+    """
+    Capture image from webcam and detect faces.
+    """
+    try:
+        # Decode base64 image
+        image = decode_base64_image(base64_data.image)
+        
+        if image is None:
+            raise HTTPException(status_code=400, detail="Could not decode image")
+            
+        # Process the image
+        result = process_image_data(image)
+        for face in result["faces"]:
+            email = face["email"]
+            checkin_realtime(email)
+
+        return JSONResponse(content=result)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/", response_class=HTMLResponse)
+async def get_index():
+    with open("static/home.html") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
 
 @app.post("/detect_faces")
 async def detect_faces(
